@@ -99,14 +99,14 @@ public class HuffProcessor {
 		           throw new HuffException("bad input, no PSEUDO_EOF");
 		       }
 		       else { 
-		           if (bits == 0) current = current.left;
-		      else current = current.right;
+		           if (bits == 0) current = current.myLeft;
+		      else current = current.myRight;
 
-		           if (current is a leaf node) {
-		               if (current.value == PSEUDO_EOF) 
+		           if (current.myLeft == null && current.myRight == null) {
+		               if (current.myValue == PSEUDO_EOF) 
 		                   break;   // out of loop
 		               else {
-		                   write bits for current.value;
+		                   out.writeBits(8, current.myValue);
 		                   current = root; // start back after leaf
 		               }
 		           }
