@@ -61,14 +61,27 @@ public class HuffProcessor {
 //		}
 //		out.close();
 	}
-	private void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
-		// TODO Auto-generated method stub
+	public void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
+		while(true) {
+			int c = in.readBits(BITS_PER_WORD);
+			if(c == -1) break;
+			String code = codings[c];
+			out.writeBits(code.length(), Integer.parseInt(code, 2));
+		}
+		String code = codings[PSEUDO_EOF];
+		out.writeBits(code.length(), Integer.parseInt(code,2));
 		
 	}
-
-	private void writeReader(HuffNode root, BitOutputStream out) {
-		// TODO Auto-generated method stub
-		
+	
+	public void writeReader(HuffNode root, BitOutputStream out) {
+		if(root.myLeft == null && root.myRight == null) {
+			out.writeBits(1,1);
+			out.writeBits(BITS_PER_WORD +1, root.myValue);
+			return;
+		}
+		out.writeBits(1, 0);
+		writeReader(root.myLeft, out);
+		writeReader(root.myRight, out);
 	}
 
 	private String[] makeCodingsFromTree(HuffNode root) {
@@ -81,7 +94,6 @@ public class HuffProcessor {
 	private String[] codingHelper(HuffNode root, String string, String[] encodings) {
 		if (root.myLeft == null && root.myRight == null) {
 	        encodings[root.myValue] = string;
-	        
 	   }
 		return encodings;
 		
@@ -89,12 +101,11 @@ public class HuffProcessor {
 
 	private HuffNode makeTreeFromCounts(int[] counts) {
 		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
-		int [] freqs = new int [ALPH_SIZE + 1];
-		freqs[PSEUDO_EOF] = 1;
+		counts[PSEUDO_EOF] = 1;
 
-		for(int i = 0; i < freqs.length; i ++) {
-			if (freqs[i] > 0) {
-			    pq.add(new HuffNode(i,freqs[i],null,null));
+		for(int i = 0; i < counts.length; i ++) {
+			if (counts[i] > 0) {
+			    pq.add(new HuffNode(i,counts[i],null,null));
 
 			}
 		}
@@ -109,8 +120,16 @@ public class HuffProcessor {
 	}
 
 	private int[] readForCounts(BitInputStream in) {
-		// TODO Auto-generated method stub
-		return null;
+		int [] freqs = new int [ALPH_SIZE + 1];
+		freqs[PSEUDO_EOF] = 1;
+		while (true) {
+			int val = in.readBits(BITS_PER_WORD);
+			if (val == -1) {
+				break;
+			}
+			freqs[val]++;
+		}
+		return freqs;
 	}
 
 	/**
@@ -142,7 +161,7 @@ public class HuffProcessor {
 	}
 
 	private HuffNode readTreeReader(BitInputStream in) {
-		int bit = in.readBits(BITS_PER_WORD+1);
+		int bit = in.readBits(1);
 		if (bit == -1) {
 			throw new HuffException("Illegal header starts with" + bit);
 		}
@@ -170,10 +189,10 @@ public class HuffProcessor {
 
 		           if (current.myLeft == null && current.myRight == null) {
 		               if (current.myValue == PSEUDO_EOF) 
-		                   break;   // out of loop
+		                   break;   
 		               else {
 		                   out.writeBits(8, current.myValue);
-		                   current = root; // start back after leaf
+		                   current = root; 
 		               }
 		           }
 		       }
